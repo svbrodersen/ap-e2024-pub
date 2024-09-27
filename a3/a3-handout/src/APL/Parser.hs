@@ -123,7 +123,7 @@ pLExp =
     , do
         _ <- lString "\\"
         v <- lVName
-        _ <- lKeyword "->"
+        _ <- lString "->"
         Lambda v <$> pExp
     , pFExp
     ]
