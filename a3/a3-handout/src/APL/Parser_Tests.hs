@@ -67,14 +67,41 @@ tests =
         ]
     , testGroup
         "Function application"
-        []
+        [
+          parserTest "x y z" $ Apply (Apply (Var "x") (Var "y")) (Var "z") -- From examples
+        , parserTest "a b c d" $ Apply (Apply (Apply (Var "a") (Var "b")) (Var "c")) (Var "d")
+        , parserTest "x(y z)" $ Apply (Var "x") (Apply (Var "y") (Var "z")) -- From examples
+        , parserTest "a(b(c d))" $ Apply (Var "a") (Apply (Var "b") (Apply (Var "c") (Var "d")))
+        ]
     , testGroup
         "Equality and power operations"
-        []
+        [
+          parserTest "x==y" $ Eql (Var "x") (Var "y")
+        , parserTest "x**y" $ Pow (Var "x") (Var "y")
+        , parserTest "x==y==z" $ Eql (Eql (Var "x") (Var "y")) (Var "z")
+        , parserTest "x**y**z" $ Pow (Pow (Var "x") (Var "y")) (Var "z") 
+        , parserTest "x**y==z" $ Eql (Pow (Var "x") (Var "y")) (Var "z")
+        , parserTest "x==y**z" $ Eql (Var "x") (Pow (Var "y") (Var "z"))
+        , parserTest "x**y==z**w" $ Eql (Pow (Var "x") (Var "y")) (Pow (Var "z") (Var "w"))
+        , parserTest "x+y*z/f**i==c" $ Eql (Add (Var "x") (Div (Mul (Var "y") (Var "z")) (Pow (Var "f") (Var "i")))) (Var "c") -- Operator priority
+        ]
     , testGroup
         "Printing, putting and getting"
-        []
+        [
+          parserTest "put x y" $ KvPut (Var "x") (Var "y") -- From examples
+        , parserTest "get x + y" $ Add (KvGet (Var "x")) (Var "y") -- From examples
+        , parserTest "print \"foo\" x" $ Print "foo" (Var "x") -- From examples
+        , parserTest "getx" $ Var "getx" -- From examples
+        , parserTest "putx" $ Var "putx"
+        , parserTest "printx" $ Var "printx"
+        ]
     , testGroup
         "Lambdas, let-binding and try-catch"
-        []
+        [
+          parserTest "let x = y in z" $ Let "x" (Var "y") (Var "z") -- From examples
+        , parserTestFail "let true = y in z" -- From examples
+        , parserTestFail "x let v = 2 in v" -- From examples
+        , parserTest "\\x -> y" $ Lambda "x" (Var "y") 
+        , parserTest "try x catch y" $ TryCatch (Var "x") (Var "y")
+        ]
     ]
