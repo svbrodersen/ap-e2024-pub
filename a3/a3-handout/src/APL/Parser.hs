@@ -77,28 +77,26 @@ pAtom =
     , lString "(" *> pExp <* lString ")"
     ]
 
-pFExp'' :: Parser [Exp]
-pFExp'' =
-  choice
-    [ do
-        x <- pFExp'
-        y <- pFExp''
-        pure $ x ++ y
-    , pure []
-    ]
-
-pFExp' :: Parser [Exp]
-pFExp' =
-  do
-    x <- pAtom
-    y <- pFExp''
-    pure $ x : y
+{-
+ - pFEexp' = pFExp'
+ - | empty
+ -
+ - pFExp = pAtom
+ - | pFExp'
+ - -}
 
 pFExp :: Parser Exp
-pFExp =
-  do
-    (x : xs) <- pFExp'
-    pure $ foldl Apply x xs
+pFExp = do
+  x <- pAtom
+  chain x
+ where
+  chain x =
+    choice
+      [ do
+          y <- pAtom
+          chain $ Apply x y
+      , pure x
+      ]
 
 pLExp :: Parser Exp
 pLExp =
@@ -110,35 +108,81 @@ pLExp =
     , pFExp
     ]
 
-pExp1 :: Parser Exp
-pExp1 = pLExp >>= chain
+{- Exp := LExp
+ - | Exp "**" Exp
+ -
+ - Exp' := LExp
+ -
+ - Exp := Exp' "**" Exp
+ -
+ -
+ - -}
+
+pExp3' :: Parser [Exp]
+pExp3' =
+  do
+    x <- pLExp
+    chain [x]
+ where
+  chain x =
+    choice
+      [ do
+          lString "**"
+          y <- pLExp
+          chain $ x ++ [y]
+      , pure x
+      ]
+
+pExp3 :: Parser Exp
+pExp3 =
+  do
+    (x : xs) <- pExp3'
+    pure $ foldl Pow x xs
+
+pExp2 :: Parser Exp
+pExp2 = pExp3 >>= chain
  where
   chain x =
     choice
       [ do
           lString "*"
-          y <- pLExp
+          y <- pExp3
           chain $ Mul x y
       , do
           lString "/"
-          y <- pLExp
+          y <- pExp3
           chain $ Div x y
       , pure x
       ]
 
-pExp0 :: Parser Exp
-pExp0 = pExp1 >>= chain
+pExp1 :: Parser Exp
+pExp1 = pExp2 >>= chain
  where
   chain x =
     choice
       [ do
           lString "+"
-          y <- pExp1
+          y <- pExp2
           chain $ Add x y
       , do
           lString "-"
-          y <- pExp1
+          y <- pExp2
           chain $ Sub x y
+      , pure x
+      ]
+
+pExp0 :: Parser Exp
+pExp0 =
+  do
+    x <- pExp1
+    chain x
+ where
+  chain x =
+    choice
+      [ do
+          lString "=="
+          y <- pExp1
+          chain $ Eql x y
       , pure x
       ]
 
