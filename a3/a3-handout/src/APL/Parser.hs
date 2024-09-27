@@ -68,6 +68,9 @@ lBool =
     , const False <$> lKeyword "false"
     ]
 
+lWord :: Parser String
+lWord = lexeme $ lString "\"" *> some (satisfy isAlphaNum) <* lString "\""
+
 pAtom :: Parser Exp
 pAtom =
   choice
@@ -105,7 +108,41 @@ pLExp =
         <$> (lKeyword "if" *> pExp)
         <*> (lKeyword "then" *> pExp)
         <*> (lKeyword "else" *> pExp)
+    , do
+        _ <- lKeyword "let"
+        v <- lVName
+        _ <- lString "="
+        e1 <- pExp
+        _ <- lString "in"
+        Let v e1 <$> pExp
+    , do
+        _ <- lKeyword "try"
+        e1 <- pExp
+        _ <- lString "catch"
+        TryCatch e1 <$> pExp
+    , do
+        _ <- lString "\\"
+        v <- lVName
+        _ <- lKeyword "->"
+        Lambda v <$> pExp
     , pFExp
+    ]
+
+pPGPExp :: Parser Exp
+pPGPExp =
+  choice
+    [ do
+        _ <- lKeyword "print"
+        s <- lWord
+        Print s <$> pAtom
+    , do
+        _ <- lKeyword "get"
+        KvGet <$> pAtom
+    , do
+        _ <- lKeyword "put"
+        e1 <- pAtom
+        KvPut e1 <$> pAtom
+    , pLExp
     ]
 
 {- Exp := LExp
@@ -121,14 +158,14 @@ pLExp =
 pExp3' :: Parser [Exp]
 pExp3' =
   do
-    x <- pLExp
+    x <- pPGPExp
     chain [x]
  where
   chain x =
     choice
       [ do
           lString "**"
-          y <- pLExp
+          y <- pPGPExp
           chain $ x ++ [y]
       , pure x
       ]
