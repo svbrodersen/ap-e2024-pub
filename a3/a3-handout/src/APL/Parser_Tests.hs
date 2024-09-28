@@ -117,6 +117,7 @@ tests =
                       )
                   )
                   (Var "c") -- Operator priority
+            , parserTest "x**y**z" $ Pow (Var "x") (Pow (Var "y") (Var "z")) -- Right associative testing 
             ]
         ]
     , testGroup
