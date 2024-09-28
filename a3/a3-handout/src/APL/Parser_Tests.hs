@@ -67,10 +67,42 @@ tests =
         ]
     , testGroup
         "Function application"
-        []
+        [ parserTest "x y z" $
+            Apply (Apply (Var "x") (Var "y")) (Var "z")
+        , parserTest "x(y z)" $
+            Apply (Var "x") (Apply (Var "y") (Var "z"))
+        ]
     , testGroup
         "Equality and power operations"
-        []
+        [ testGroup
+            "Power test"
+            [ parserTestFail "x***y"
+            , parserTest "x*y**z**k" $
+                Mul
+                  (Var "x")
+                  ( Pow
+                      (Var "y")
+                      ( Pow
+                          (Var "z")
+                          (Var "k")
+                      )
+                  )
+            , parserTest "x*y**z" $ Mul (Var "x") (Pow (Var "y") (Var "z"))
+            , parserTest "x**y*z" $ Mul (Pow (Var "x") (Var "y")) (Var "z")
+            ]
+        , testGroup
+            "Equality test"
+            [ parserTest "x+y==y+x" $
+                Eql
+                  (Add (Var "x") (Var "y"))
+                  ( Add
+                      ( Var
+                          "y"
+                      )
+                      (Var "x")
+                  )
+            ]
+        ]
     , testGroup
         "Printing, putting and getting"
         []

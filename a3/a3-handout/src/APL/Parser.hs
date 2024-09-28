@@ -80,14 +80,6 @@ pAtom =
     , lString "(" *> pExp <* lString ")"
     ]
 
-{-
- - pFEexp' = pFExp'
- - | empty
- -
- - pFExp = pAtom
- - | pFExp'
- - -}
-
 pFExp :: Parser Exp
 pFExp = do
   x <- pAtom
@@ -155,26 +147,20 @@ pPGPExp =
  -
  - -}
 
-pExp3' :: Parser [Exp]
-pExp3' =
+pExp3 :: Parser Exp
+pExp3 =
   do
     x <- pPGPExp
-    chain [x]
+    chain x
  where
   chain x =
     choice
       [ do
           lString "**"
-          y <- pPGPExp
-          chain $ x ++ [y]
+          y <- pExp3
+          chain $ Pow x y
       , pure x
       ]
-
-pExp3 :: Parser Exp
-pExp3 =
-  do
-    (x : xs) <- pExp3'
-    pure $ foldl Pow x xs
 
 pExp2 :: Parser Exp
 pExp2 = pExp3 >>= chain
