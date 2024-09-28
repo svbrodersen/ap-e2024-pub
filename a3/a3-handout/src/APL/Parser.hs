@@ -137,16 +137,6 @@ pPGPExp =
     , pLExp
     ]
 
-{- Exp := LExp
- - | Exp "**" Exp
- -
- - Exp' := LExp
- -
- - Exp := Exp' "**" Exp
- -
- -
- - -}
-
 pExp3 :: Parser Exp
 pExp3 =
   do
