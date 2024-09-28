@@ -67,9 +67,9 @@ tests =
         ]
     , testGroup
         "Function application"
-        [ parserTest "x y z" $ Apply (Apply (Var "x") (Var "y")) (Var "z") -- From examples
+        [ parserTest "x y z" $ Apply (Apply (Var "x") (Var "y")) (Var "z") -- From examples (Shows left associativity)
         , parserTest "a b c d" $ Apply (Apply (Apply (Var "a") (Var "b")) (Var "c")) (Var "d")
-        , parserTest "x(y z)" $ Apply (Var "x") (Apply (Var "y") (Var "z")) -- From examples
+        , parserTest "x(y z)" $ Apply (Var "x") (Apply (Var "y") (Var "z")) -- From examples (Shows that it binds tighter than other operators)
         , parserTest "a(b(c d))" $ Apply (Var "a") (Apply (Var "b") (Apply (Var "c") (Var "d")))
         ]
     , testGroup
@@ -86,8 +86,8 @@ tests =
                           (Var "z")
                           (Var "k")
                       )
-                  )
-            , parserTest "x*y**z" $ Mul (Var "x") (Pow (Var "y") (Var "z"))
+                  ) -- Shows right associativity
+            , parserTest "x*y**z" $ Mul (Var "x") (Pow (Var "y") (Var "z")) -- Shows higher precedence than multiplication (and other operators)
             , parserTest "x**y*z" $ Mul (Pow (Var "x") (Var "y")) (Var "z")
             , parserTest "x**y" $ Pow (Var "x") (Var "y")
             ]
