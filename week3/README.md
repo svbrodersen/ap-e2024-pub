@@ -61,8 +61,8 @@ Implement a lexer function
 lInteger :: Parser Integer
 ```
 
-that parses integers according to the grammar above (that is, one or
-more decimal digits).
+that parses (non-negative) integers according to the grammar above
+(that is, one or more decimal digits).
 
 To start, let us not worry about whitespace or similar complexities.
 
@@ -667,9 +667,9 @@ Atom ::= var
        | "(" Exp ")"
 
 LExp ::= "if" Exp "then" Exp "else" Exp
+       | Atom
 
-Exp ::= Atom
-      | LExp
+Exp ::= LExp
       | Exp "+" Exp
       | Exp "-" Exp
       | Exp "*" Exp
