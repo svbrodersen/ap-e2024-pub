@@ -1,10 +1,68 @@
-module APL.Eval (
-  eval,
-)
+module APL.Eval
+  ( Val (..),
+    Env,
+    eval,
+    runEval,
+    Error,
+  )
 where
 
-import APL.AST (Exp (..))
-import APL.Monad
+import APL.AST (Exp (..), VName)
+import Control.Monad (ap, liftM)
+
+data Val
+  = ValInt Integer
+  | ValBool Bool
+  | ValFun Env VName Exp
+  deriving (Eq, Show)
+
+type Env = [(VName, Val)]
+
+envEmpty :: Env
+envEmpty = []
+
+envExtend :: VName -> Val -> Env -> Env
+envExtend v val env = (v, val) : env
+
+envLookup :: VName -> Env -> Maybe Val
+envLookup v env = lookup v env
+
+type Error = String
+
+newtype EvalM a = EvalM (Env -> Either Error a)
+
+instance Functor EvalM where
+  fmap = liftM
+
+instance Applicative EvalM where
+  pure x = EvalM $ \_env -> Right x
+  (<*>) = ap
+
+instance Monad EvalM where
+  EvalM x >>= f = EvalM $ \env ->
+    case x env of
+      Left err -> Left err
+      Right x' ->
+        let EvalM y = f x'
+         in y env
+
+askEnv :: EvalM Env
+askEnv = EvalM $ \env -> Right env
+
+localEnv :: (Env -> Env) -> EvalM a -> EvalM a
+localEnv f (EvalM m) = EvalM $ \env -> m (f env)
+
+failure :: String -> EvalM a
+failure s = EvalM $ \_env -> Left s
+
+catch :: EvalM a -> EvalM a -> EvalM a
+catch (EvalM m1) (EvalM m2) = EvalM $ \env ->
+  case m1 env of
+    Left _ -> m2 env
+    Right x -> Right x
+
+runEval :: EvalM a -> Either Error a
+runEval (EvalM m) = m envEmpty
 
 evalIntBinOp :: (Integer -> Integer -> EvalM Integer) -> Exp -> Exp -> EvalM Val
 evalIntBinOp f e1 e2 = do
@@ -17,10 +75,9 @@ evalIntBinOp f e1 e2 = do
 evalIntBinOp' :: (Integer -> Integer -> Integer) -> Exp -> Exp -> EvalM Val
 evalIntBinOp' f e1 e2 =
   evalIntBinOp f' e1 e2
- where
-  f' x y = pure $ f x y
+  where
+    f' x y = pure $ f x y
 
--- Replace with your 'eval' from your solution to assignment 2.
 eval :: Exp -> EvalM Val
 eval (CstInt x) = pure $ ValInt x
 eval (CstBool b) = pure $ ValBool b
@@ -33,15 +90,15 @@ eval (Add e1 e2) = evalIntBinOp' (+) e1 e2
 eval (Sub e1 e2) = evalIntBinOp' (-) e1 e2
 eval (Mul e1 e2) = evalIntBinOp' (*) e1 e2
 eval (Div e1 e2) = evalIntBinOp checkedDiv e1 e2
- where
-  checkedDiv _ 0 = failure "Division by zero"
-  checkedDiv x y = pure $ x `div` y
+  where
+    checkedDiv _ 0 = failure "Division by zero"
+    checkedDiv x y = pure $ x `div` y
 eval (Pow e1 e2) = evalIntBinOp checkedPow e1 e2
- where
-  checkedPow x y =
-    if y < 0
-      then failure "Negative exponent"
-      else pure $ x ^ y
+  where
+    checkedPow x y =
+      if y < 0
+        then failure "Negative exponent"
+        else pure $ x ^ y
 eval (Eql e1 e2) = do
   v1 <- eval e1
   v2 <- eval e2
@@ -71,29 +128,5 @@ eval (Apply e1 e2) = do
       failure "Cannot apply non-function"
 eval (TryCatch e1 e2) =
   eval e1 `catch` eval e2
-eval (Print s e) =
-  do
-    v1 <- eval e
-    case v1 of
-      ValInt a ->
-        do
-          _ <- evalPrint (s ++ ": " ++ show a)
-          pure $ ValInt a
-      ValBool a ->
-        do
-          _ <- evalPrint (s ++ ": " ++ show a)
-          pure $ ValBool a
-      ValFun env v b ->
-        do
-          _ <- evalPrint (s ++ ": " ++ "#<fun>")
-          pure $ ValFun env v b
-eval (KvPut e1 e2) =
-  do
-    k <- eval e1
-    v <- eval e2
-    _ <- evalKvPut k v
-    pure v
-eval (KvGet e) =
-  do
-    v1 <- eval e
-    evalKvGet v1
+eval e =
+  error $ "Evaluation of this expression not implemented:\n" ++ show e
