@@ -116,3 +116,13 @@ runEvalIO evalm = do
                 runEvalIO' r db k
          where
           dbState' = filter (\(z, _) -> z /= v1) dbState
+  runEvalIO' r db (Free (TransactionOp k m)) =
+    do
+      _ <- withTempDB tempFunc
+      runEvalIO' r db m
+   where
+    tempFunc db' =
+      do
+        _ <- runEvalIO' r db' k
+        _ <- copyDB db' db
+        pure ()
