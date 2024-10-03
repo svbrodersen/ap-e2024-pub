@@ -90,8 +90,15 @@ runEvalIO evalm = do
         (Left err) -> pure $ Left err
         (Right s) ->
           case lookup v1 s of
-            Nothing -> pure $ Left $ "Key " ++ show v1 ++ " not found"
+            Nothing -> retry_key
             (Just v2) -> runEvalIO' r db (f v2)
+         where
+          retry_key =
+            do
+              s' <- prompt $ "Invalid key: " ++ show v1 ++ ". Enter a replacement: "
+              case readVal s' of
+                Nothing -> pure $ Left $ "Invalid value input: " ++ s'
+                (Just v2) -> runEvalIO' r db (f v2)
   runEvalIO' r db (Free (KvPutOp v1 v2 k)) =
     do
       file <- readDB db

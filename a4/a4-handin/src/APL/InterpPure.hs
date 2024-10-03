@@ -20,7 +20,7 @@ runEval = runEval' envEmpty stateInitial
       (s', Right x) -> (s', Right x)
   runEval' r s (Free (KvGetOp v f)) =
     case lookup v s of
-      Nothing -> ([], Left $ "Key " ++ show v ++ " not found")
+      Nothing -> ([], Left $ "Invalid Key: " ++ show v)
       (Just v1) -> runEval' r s (f v1)
   runEval' r s (Free (KvPutOp v1 v2 k)) =
     case lookup v1 s of
@@ -29,3 +29,18 @@ runEval = runEval' envEmpty stateInitial
    where
     -- We remove the item, where the key is with filter.
     s' = filter (\(z, _) -> z /= v1) s
+  runEval' r s (Free (TransactionOp k m)) =
+    case runEval' r s k of
+      (ps, Left _) ->
+        let (ps', res) = runEval' r s m
+         in (ps ++ ps', res)
+      (ps, Right _) ->
+        let (ps', res) =
+              runEval'
+                r
+                s
+                ( do
+                    _ <- k
+                    m
+                )
+         in (ps ++ ps', res)
