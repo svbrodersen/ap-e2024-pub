@@ -221,7 +221,7 @@ runEval' :: Env -> State -> EvalM a -> a
 
 ```Haskell
 -- APL.Monad:
-instance Functor (EvalOp r s) where
+instance Functor EvalOp where
   fmap f (ReadOp k) = ReadOp $ f . k
   fmap f (StateGetOp k) = StateGetOp $ f . k
   fmap f (StatePutOp s m) = StatePutOp s $ f m
@@ -482,7 +482,10 @@ instance Functor EvalOp where
 
 failure :: String -> EvalM a
 failure = Free . ErrorOp
+```
 
+```Haskell
+-- APL.InterpPure:
 runEval :: EvalM a -> ([String], Either Error a)
 runEval = runEval' envEmpty stateInitial
   where
@@ -495,10 +498,6 @@ runEval = runEval' envEmpty stateInitial
       let (ps, res) = runEval' r s m
        in (p : ps, res)
     runEval' _ _ (Free (ErrorOp e)) = ([], Left e)
-```
-
-`APL.InterpPure`:
-```Haskell
 ```
 
 </details>
