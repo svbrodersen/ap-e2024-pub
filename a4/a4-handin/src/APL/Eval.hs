@@ -1,6 +1,6 @@
-module APL.Eval
-  ( eval,
-  )
+module APL.Eval (
+  eval,
+)
 where
 
 import APL.AST (Exp (..))
@@ -17,10 +17,9 @@ evalIntBinOp f e1 e2 = do
 evalIntBinOp' :: (Integer -> Integer -> Integer) -> Exp -> Exp -> EvalM Val
 evalIntBinOp' f e1 e2 =
   evalIntBinOp f' e1 e2
-  where
-    f' x y = pure $ f x y
+ where
+  f' x y = pure $ f x y
 
--- Replace with your 'eval' from your solution to assignment 2.
 eval :: Exp -> EvalM Val
 eval (CstInt x) = pure $ ValInt x
 eval (CstBool b) = pure $ ValBool b
@@ -33,15 +32,15 @@ eval (Add e1 e2) = evalIntBinOp' (+) e1 e2
 eval (Sub e1 e2) = evalIntBinOp' (-) e1 e2
 eval (Mul e1 e2) = evalIntBinOp' (*) e1 e2
 eval (Div e1 e2) = evalIntBinOp checkedDiv e1 e2
-  where
-    checkedDiv _ 0 = failure "Division by zero"
-    checkedDiv x y = pure $ x `div` y
+ where
+  checkedDiv _ 0 = failure "Division by zero"
+  checkedDiv x y = pure $ x `div` y
 eval (Pow e1 e2) = evalIntBinOp checkedPow e1 e2
-  where
-    checkedPow x y =
-      if y < 0
-        then failure "Negative exponent"
-        else pure $ x ^ y
+ where
+  checkedPow x y =
+    if y < 0
+      then failure "Negative exponent"
+      else pure $ x ^ y
 eval (Eql e1 e2) = do
   v1 <- eval e1
   v2 <- eval e2
@@ -71,3 +70,30 @@ eval (Apply e1 e2) = do
       failure "Cannot apply non-function"
 eval (TryCatch e1 e2) =
   eval e1 `catch` eval e2
+eval (Print s e) =
+  do
+    v1 <- eval e
+    case v1 of
+      ValInt a ->
+        output ValInt a
+      ValBool a ->
+        output ValBool a
+      ValFun env v b ->
+        do
+          _ <- evalPrint (s ++ ": " ++ "#<fun>")
+          pure $ ValFun env v b
+ where
+  output b a =
+    do
+      _ <- evalPrint (s ++ ": " ++ show a)
+      pure $ b a
+eval (KvPut e1 e2) =
+  do
+    k <- eval e1
+    v <- eval e2
+    _ <- evalKvPut k v
+    pure v
+eval (KvGet e) =
+  do
+    v1 <- eval e
+    evalKvGet v1

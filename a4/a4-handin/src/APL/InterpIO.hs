@@ -1,5 +1,6 @@
 module APL.InterpIO (runEvalIO) where
 
+import APL.InterpPure (runEval)
 import APL.Monad
 import APL.Util
 import System.Directory (removeFile)
@@ -58,13 +59,19 @@ runEvalIO :: EvalM a -> IO (Either Error a)
 runEvalIO evalm = do
   clearDB
   runEvalIO' envEmpty dbFile evalm
-  where
-    runEvalIO' :: Env -> FilePath -> EvalM a -> IO (Either Error a)
-    runEvalIO' _ _ (Pure x) = pure $ pure x
-    runEvalIO' r db (Free (ReadOp k)) = runEvalIO' r db $ k r
-    runEvalIO' r db (Free (StateGetOp k)) = error "TODO in Task 3"
-    runEvalIO' r db (Free (StatePutOp s m)) = error "TODO in Task 3"
-    runEvalIO' r db (Free (PrintOp p m)) = do
-      putStrLn p
-      runEvalIO' r db m
-    runEvalIO' _ _ (Free (ErrorOp e)) = pure $ Left e
+ where
+  runEvalIO' :: Env -> FilePath -> EvalM a -> IO (Either Error a)
+  runEvalIO' _ _ (Pure x) = pure $ pure x
+  runEvalIO' r db (Free (ReadOp k)) = runEvalIO' r db $ k r
+  runEvalIO' r db (Free (StateGetOp k)) = error "TODO in Task 3"
+  runEvalIO' r db (Free (StatePutOp s m)) = error "TODO in Task 3"
+  runEvalIO' r db (Free (PrintOp p m)) = do
+    putStrLn p
+    runEvalIO' r db m
+  runEvalIO' _ _ (Free (ErrorOp e)) = pure $ Left e
+  runEvalIO' r db (Free (TryCatchOp m1 m2)) =
+    do
+      k1 <- runEvalIO' r db m1
+      case k1 of
+        (Left _) -> runEvalIO' r db m2
+        (Right x) -> pure $ Right x

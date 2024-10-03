@@ -1,28 +1,28 @@
-module APL.Monad
-  ( envEmpty,
-    envExtend,
-    envLookup,
-    stateInitial,
-    askEnv,
-    modifyEffects,
-    localEnv,
-    getState,
-    putState,
-    modifyState,
-    evalPrint,
-    catch,
-    failure,
-    evalKvGet,
-    evalKvPut,
-    transaction,
-    EvalM,
-    Val (..),
-    EvalOp (..),
-    Free (..),
-    Error,
-    Env,
-    State,
-  )
+module APL.Monad (
+  envEmpty,
+  envExtend,
+  envLookup,
+  stateInitial,
+  askEnv,
+  modifyEffects,
+  localEnv,
+  getState,
+  putState,
+  modifyState,
+  evalPrint,
+  catch,
+  failure,
+  evalKvGet,
+  evalKvPut,
+  transaction,
+  EvalM,
+  Val (..),
+  EvalOp (..),
+  Free (..),
+  Error,
+  Env,
+  State,
+)
 where
 
 import APL.AST (Exp (..), VName)
@@ -67,8 +67,8 @@ instance (Functor e) => Applicative (Free e) where
 instance (Functor e) => Monad (Free e) where
   Pure x >>= f = f x
   Free g >>= f = Free $ h <$> g
-    where
-      h x = x >>= f
+   where
+    h x = x >>= f
 
 data EvalOp a
   = ReadOp (Env -> a)
@@ -76,6 +76,7 @@ data EvalOp a
   | StatePutOp State a
   | PrintOp String a
   | ErrorOp Error
+  | TryCatchOp a a
 
 instance Functor EvalOp where
   fmap f (ReadOp k) = ReadOp $ f . k
@@ -83,6 +84,7 @@ instance Functor EvalOp where
   fmap f (StatePutOp s m) = StatePutOp s $ f m
   fmap f (PrintOp p m) = PrintOp p $ f m
   fmap _ (ErrorOp e) = ErrorOp e
+  fmap f (TryCatchOp k m) = TryCatchOp (f k) (f m)
 
 type EvalM a = Free EvalOp a
 
@@ -95,9 +97,9 @@ modifyEffects g (Free e) = Free $ modifyEffects g <$> g e
 
 localEnv :: (Env -> Env) -> EvalM a -> EvalM a
 localEnv f = modifyEffects g
-  where
-    g (ReadOp k) = ReadOp $ k . f
-    g op = op
+ where
+  g (ReadOp k) = ReadOp $ k . f
+  g op = op
 
 getState :: EvalM State
 getState = Free $ StateGetOp $ \s -> pure s
@@ -117,7 +119,7 @@ failure :: String -> EvalM a
 failure = Free . ErrorOp
 
 catch :: EvalM a -> EvalM a -> EvalM a
-catch = error "TODO"
+catch m1 m2 = Free $ TryCatchOp m1 m2
 
 evalKvGet :: Val -> EvalM Val
 evalKvGet = error "TODO"
