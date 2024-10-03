@@ -98,6 +98,12 @@ September 3rd, marks the beginning of the course, with the first lecture.
 | 13-15 |        |         |           | Lecture   | Café   |
 | 15-17 |        |         |           | Exercises |        |
 
+**Note:** the lecture on the 10th of October is cancelled, due to the
+auditorium being occupied by one of the student revues. The exercise
+classes will still be held.
+
+There are no lectures in week 42, on account of the fall holiday.
+
 ### Exercise class locations
 
 * **Hold 1:**
@@ -237,7 +243,7 @@ you are asked to implement.
 
 8. You are allowed to use any Haskell module that is available in the
    packages specified in the `.cabal` file in the handout. You are not
-   allowed to add additional library dependencies.
+   allowed to add additional package dependencies.
 
 9. Your zip file, should contain a single top-level folder with an
    appropriate name (e.g. `handin`). 
@@ -252,7 +258,7 @@ Every Friday at Lille UP-1 at DIKU from 13:00-15:00 (unless otherwise
 specified) we host an assignment café where you can get help with the
 assignment from a TA.
 
-**Note:** on the 3rd of October, the café is from 14:00-16:00.
+**Note:** on the 4th of October, the café is from 14:00-16:00.
 
 ## Exam
 
@@ -262,7 +268,8 @@ assignments in content and form, with the following differences:
 
 * It is strictly individual.
 
-* It is roughly the size of two assignments.
+* It is roughly the size of three assignments (the exam is allotted a
+  workload of 25 hours in the course description).
 
 * You receive only summative feedback (i.e., a grade).
 
@@ -289,6 +296,18 @@ Week 45: 1st of November to 8th of November.
 You are not expected to work full time for the entire period. The
 intended exam workload is specified as 25 hours of work in the course
 description.
+
+## Reexam
+
+The reexam takes the same form as the ordinary exam (with the
+possibility of switching to an oral exam if there are very few
+attendees, but this is highly unlikely) and is held at a currently
+unknown time - probably after block 2.
+
+If you did not qualify for the ordinary exam, qualification for the
+re-exam can be achieved by (re)submission and approval of the
+mandatory assignments. The assignments must be submitted on Absalon no
+later than three weeks before the re-exam date.
 
 ## AI Policy
 
