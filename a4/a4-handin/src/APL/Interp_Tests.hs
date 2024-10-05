@@ -27,12 +27,12 @@ pureTests =
           ( localEnv (const [("x", ValInt 1)]) $
               askEnv
           )
-          @?= ([], Right [("x", ValInt 1)]),
-      --
+          @?= ([], Right [("x", ValInt 1)])
+    , --
       testCase "Let" $
         eval' (Let "x" (Add (CstInt 2) (CstInt 3)) (Var "x"))
-          @?= ([], Right (ValInt 5)),
-      --
+          @?= ([], Right (ValInt 5))
+    , --
       testCase "Let (shadowing)" $
         eval'
           ( Let
@@ -40,8 +40,8 @@ pureTests =
               (Add (CstInt 2) (CstInt 3))
               (Let "x" (CstBool True) (Var "x"))
           )
-          @?= ([], Right (ValBool True)),
-      --
+          @?= ([], Right (ValBool True))
+    , --
       testCase "State" $
         runEval
           ( do
@@ -49,20 +49,20 @@ pureTests =
               modifyState $ map (\(key, _) -> (key, ValInt 5))
               getState
           )
-          @?= ([], Right [(ValInt 0, ValInt 5)]),
-      --
+          @?= ([], Right [(ValInt 0, ValInt 5)])
+    , --
       testCase "Print" $
         runEval (evalPrint "test")
-          @?= (["test"], Right ()),
-      --
+          @?= (["test"], Right ())
+    , --
       testCase "Error" $
         runEval
           ( do
               _ <- failure "Oh no!"
               evalPrint "test"
           )
-          @?= ([], Left "Oh no!"),
-      --
+          @?= ([], Left "Oh no!")
+    , --
       testCase "Div0" $
         eval' (Div (CstInt 7) (CstInt 0))
           @?= ([], Left "Division by zero")
@@ -81,15 +81,23 @@ ioTests =
               evalPrint s1
               evalPrint s2
         (out, res) @?= ([s1, s2], Right ())
-        -- NOTE: This test will give a runtime error unless you replace the
-        -- version of `eval` in `APL.Eval` with a complete version that supports
-        -- `Print`-expressions. Uncomment at your own risk.
-        -- testCase "print 2" $ do
-        --    (out, res) <-
-        --      captureIO [] $
-        --        evalIO' $
-        --          Print "This is also 1" $
-        --            Print "This is 1" $
-        --              CstInt 1
-        --    (out, res) @?= (["This is 1: 1", "This is also 1: 1"], Right $ ValInt 1)
+    , -- NOTE: This test will give a runtime error unless you replace the
+      -- version of `eval` in `APL.Eval` with a complete version that supports
+      -- `Print`-expressions. Uncomment at your own risk.
+      -- testCase "print 2" $ do
+      --    (out, res) <-
+      --      captureIO [] $
+      --        evalIO' $
+      --          Print "This is also 1" $
+      --            Print "This is 1" $
+      --              CstInt 1
+      --    (out, res) @?= (["This is 1: 1", "This is also 1: 1"], Right $ ValInt 1)
+      testCase "Missing key test" $ do
+        (_, res) <-
+          captureIO ["ValInt 1"] $
+            runEvalIO $
+              Free $
+                KvGetOp (ValInt 0) $
+                  \val -> pure val
+        res @?= Right (ValInt 1)
     ]

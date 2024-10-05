@@ -63,8 +63,16 @@ runEvalIO evalm = do
   runEvalIO' :: Env -> FilePath -> EvalM a -> IO (Either Error a)
   runEvalIO' _ _ (Pure x) = pure $ pure x
   runEvalIO' r db (Free (ReadOp k)) = runEvalIO' r db $ k r
-  runEvalIO' r db (Free (StateGetOp k)) = error "TODO in Task 3"
-  runEvalIO' r db (Free (StatePutOp s m)) = error "TODO in Task 3"
+  runEvalIO' r db (Free (StateGetOp f)) =
+    do
+      k <- readDB db
+      case k of
+        (Left err) -> pure $ Left err
+        (Right s) -> runEvalIO' r db (f s)
+  runEvalIO' r db (Free (StatePutOp s m)) =
+    do
+      _ <- writeDB db s
+      runEvalIO' r db m
   runEvalIO' r db (Free (PrintOp p m)) = do
     putStrLn p
     runEvalIO' r db m
@@ -75,3 +83,46 @@ runEvalIO evalm = do
       case k1 of
         (Left _) -> runEvalIO' r db m2
         (Right x) -> pure $ Right x
+  runEvalIO' r db (Free (KvGetOp v1 f)) =
+    do
+      k <- readDB db
+      case k of
+        (Left err) -> pure $ Left err
+        (Right s) ->
+          case lookup v1 s of
+            Nothing -> retry_key
+            (Just v2) -> runEvalIO' r db (f v2)
+         where
+          retry_key =
+            do
+              s' <- prompt $ "Invalid key: " ++ show v1 ++ ". Enter a replacement: "
+              case readVal s' of
+                Nothing -> pure $ Left $ "Invalid value input: " ++ s'
+                (Just v2) -> runEvalIO' r db (f v2)
+  runEvalIO' r db (Free (KvPutOp v1 v2 k)) =
+    do
+      file <- readDB db
+      case file of
+        (Left err) -> pure $ Left err
+        (Right dbState) ->
+          case lookup v1 dbState of
+            Nothing ->
+              do
+                _ <- writeDB db ((v1, v2) : dbState)
+                runEvalIO' r db k
+            (Just _) ->
+              do
+                _ <- writeDB db dbState'
+                runEvalIO' r db k
+         where
+          dbState' = filter (\(z, _) -> z /= v1) dbState
+  runEvalIO' r db (Free (TransactionOp k m)) =
+    do
+      _ <- withTempDB tempFunc
+      runEvalIO' r db m
+   where
+    tempFunc db' =
+      do
+        _ <- runEvalIO' r db' k
+        _ <- copyDB db' db
+        pure ()
