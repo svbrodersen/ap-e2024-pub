@@ -1,0 +1,1 @@
+:def loadall (const . pure) ":m APL.InterpPure APL.AST APL.Monad APL.Eval APL.InterpIO"
