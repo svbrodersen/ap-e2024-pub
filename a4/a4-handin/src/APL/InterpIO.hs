@@ -108,21 +108,26 @@ runEvalIO evalm = do
           case lookup v1 dbState of
             Nothing ->
               do
-                _ <- writeDB db ((v1, v2) : dbState)
+                writeDB db ((v1, v2) : dbState)
                 runEvalIO' r db k
             (Just _) ->
               do
-                _ <- writeDB db dbState'
+                writeDB db dbState'
                 runEvalIO' r db k
          where
           dbState' = filter (\(z, _) -> z /= v1) dbState
   runEvalIO' r db (Free (TransactionOp k m)) =
     do
-      _ <- withTempDB tempFunc
+      withTempDB tempFunc
       runEvalIO' r db m
    where
     tempFunc db' =
       do
-        _ <- runEvalIO' r db' k
-        _ <- copyDB db' db
-        pure ()
+        res <- runEvalIO' r db' k
+        case res of
+          (Right _) ->
+            do
+              copyDB db' db
+              pure ()
+          (Left _) ->
+            pure ()

@@ -88,12 +88,8 @@ instance Functor EvalOp where
   fmap f (PrintOp p m) = PrintOp p $ f m
   fmap _ (ErrorOp e) = ErrorOp e
   fmap f (TryCatchOp k m) = TryCatchOp (f k) (f m)
-  {-
-   -
-   -
-   - -}
   fmap f (KvGetOp v m) = KvGetOp v (\val -> f (m val))
-  fmap f (KvPutOp v1 v2 a) = KvPutOp v1 v2 (f a)
+  fmap f (KvPutOp v1 v2 k) = KvPutOp v1 v2 (f k)
   fmap f (TransactionOp k m) = TransactionOp k (f m)
 
 type EvalM a = Free EvalOp a
