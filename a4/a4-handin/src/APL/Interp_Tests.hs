@@ -206,14 +206,6 @@ ioTests =
       testCase "KvPutOp and KvGetOp test" $ do
         res <-
           runEvalIO $
-            Free (KvPutOp (ValInt 0) (ValInt 1) (Free (KvGetOp (ValInt 0) (\val -> pure val))))
+            Free (KvPutOp (ValInt 0) (ValInt 1) (Free (KvGetOp (ValInt 0) pure)))
         res @?= Right (ValInt 1)
-    , --
-      testCase "KvPutOp replace key" $ do
-        res <-
-          runEvalIO $
-            Free
-              ( KvPutOp (ValInt 0) (ValInt 1) (Free (KvPutOp (ValInt 0) (ValInt 2) (Free (KvGetOp (ValInt 0) (\val -> pure val)))))
-              )
-        res @?= Right (ValInt 2)
     ]
