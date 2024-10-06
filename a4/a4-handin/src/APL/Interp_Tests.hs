@@ -66,6 +66,26 @@ pureTests =
       testCase "Div0" $
         eval' (Div (CstInt 7) (CstInt 0))
           @?= ([], Left "Division by zero")
+    , --
+      testCase "TryCatchOp m1 fails" $ 
+        runEval (Free (TryCatchOp (failure "Oh no!") (pure (ValInt 1))))
+            @?= ([], Right (ValInt 1))
+    , --
+      testCase "TryCatchOp m1 succeeds" $
+        runEval (Free (TryCatchOp (pure (ValInt 5)) (pure (ValInt 1))))
+          @?= ([], Right (ValInt 5))
+    , --
+      testCase "KvPutOp and KvGetOp test" $ 
+        runEval (Free (KvPutOp (ValInt 0) (ValInt 1) (Free (KvGetOp (ValInt 0) (\val -> pure val)))))
+          @?= ([], Right (ValInt 1))
+    , -- 
+      testCase "KvPutOp replace key" $ 
+        runEval (Free (KvPutOp (ValInt 0) (ValInt 1) (Free (KvPutOp (ValInt 0) (ValInt 2) (Free (KvGetOp (ValInt 0) (\val -> pure val)))))))
+          @?= ([], Right (ValInt 2))
+    , -- 
+      testCase "KvGetOp missing key" $ 
+        runEval (Free (KvGetOp (ValInt 0) (\val -> pure val)))
+          @?= ([], Left "Invalid Key: ValInt 0")
     ]
 
 ioTests :: TestTree
@@ -100,4 +120,38 @@ ioTests =
                 KvGetOp (ValInt 0) $
                   \val -> pure val
         res @?= Right (ValInt 1)
+    , --
+      testCase "TryCatchOp m1 fails" $ do
+        res <- 
+          runEvalIO $
+            Free (TryCatchOp (failure "Oh no!") (pure (ValInt 1)))
+        res @?= Right (ValInt 1)
+    , --
+      testCase "TryCatchOp m1 succeeds" $ do
+        res <- 
+          runEvalIO $
+            Free (TryCatchOp (pure (ValInt 5)) (pure (ValInt 1)))
+        res @?= Right (ValInt 5)
+    , -- 
+      testCase "TryCatchOp failing comparison" $ do
+        let badEal = Eql (CstInt 0) (CstBool True)
+            div0 = Div (CstInt 1) (CstInt 0)
+        res <- 
+          runEvalIO $
+            Free (TryCatchOp (eval badEal) (eval div0))
+        res @?= Left "Division by zero"
+    , -- 
+      testCase "KvPutOp and KvGetOp test" $ do
+        res <- 
+          runEvalIO $
+            Free (KvPutOp (ValInt 0) (ValInt 1) (Free (KvGetOp (ValInt 0) (\val -> pure val))))
+        res @?= Right (ValInt 1)
+    , --
+      testCase "KvPutOp replace key" $ do
+        res <- 
+          runEvalIO $
+            Free (KvPutOp (ValInt 0) (ValInt 1) (Free (KvPutOp (ValInt 0) (ValInt 2) (Free (KvGetOp (ValInt 0) (\val -> pure val)))))
+            )
+        res @?= Right (ValInt 2)
+
     ]
