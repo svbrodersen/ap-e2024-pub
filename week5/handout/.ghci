@@ -1,0 +1,1 @@
+:def loadall (const . pure) ":m APL.Tests"
