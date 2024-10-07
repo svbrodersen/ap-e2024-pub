@@ -1,0 +1,3 @@
+[submodule "a4/latex"]
+	path = a4/latex
+	url = https://github.com/svbrodersen/AP-Assignment-4.git
