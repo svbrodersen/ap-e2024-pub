@@ -3,11 +3,13 @@ module APL.Tests (
 )
 where
 
-import APL.AST (Exp (..), VName, subExp)
+import APL.AST (Exp (..), VName, printExp, subExp)
 import APL.Check (checkExp)
 import APL.Error (isDomainError, isTypeError, isVariableError)
+import APL.Parser (parseAPL)
 import Control.Monad (when)
 import Data.Bool (bool)
+import Debug.Trace (trace)
 import Test.QuickCheck (
   Arbitrary (arbitrary, shrink),
   Gen,
@@ -146,7 +148,12 @@ expCoverage e =
     $ ()
 
 parsePrinted :: Exp -> Bool
-parsePrinted _ = undefined
+parsePrinted e1 =
+  case parseAPL "" (printExp e1) of
+    Left _ ->
+      trace "String error returned" False
+    Right e2 ->
+      trace ("Found: " ++ printExp e2) e1 == e2
 
 onlyCheckedErrors :: Exp -> Bool
 onlyCheckedErrors _ = undefined
