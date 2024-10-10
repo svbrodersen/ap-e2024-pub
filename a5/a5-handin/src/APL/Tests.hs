@@ -4,6 +4,7 @@ module APL.Tests (
 where
 
 import APL.AST (Exp (..), VName, printExp, subExp)
+import APL.Eval (eval, runEval) -- For Task 4
 import APL.Check (checkExp)
 import APL.Error (isDomainError, isTypeError, isVariableError)
 import APL.Parser (parseAPL)
@@ -156,7 +157,14 @@ parsePrinted e1 =
       trace ("Found: " ++ printExp e2) e1 == e2
 
 onlyCheckedErrors :: Exp -> Bool
-onlyCheckedErrors _ = undefined
+onlyCheckedErrors expr = 
+  let 
+    checkedErrors = checkExp expr
+    evalResult = runEval (eval expr)
+  in 
+    case evalResult of 
+      Left evalError -> evalError `elem` checkedErrors
+      Right _ -> null checkedErrors
 
 properties :: [(String, Property)]
 properties =
