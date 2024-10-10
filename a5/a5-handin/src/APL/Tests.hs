@@ -22,6 +22,7 @@ import Test.QuickCheck (
   property,
   quickCheck,
   sized,
+  suchThat,
   vectorOf,
   withMaxSuccess,
  )
@@ -58,65 +59,81 @@ genVar size = do
   alpha <- vectorOf size $ elements ['a' .. 'z']
   pure alpha
 
+genPos :: Gen Integer
+genPos = (arbitrary :: Gen Integer) `suchThat` (> 0)
+
 genExp :: Int -> [VName] -> Gen Exp
-genExp 0 _ = oneof [CstInt <$> arbitrary, CstBool <$> arbitrary]
+genExp 0 vs =
+  frequency
+    [ (1, CstInt <$> genPos)
+    , (1, CstBool <$> arbitrary)
+    , (1000, Var <$> chooseVar)
+    ]
+ where
+  chooseVar :: Gen VName
+  chooseVar =
+    case vs of
+      [] ->
+        {- if no let or lambda has been called, we create one-}
+        genVar 3
+      (x : _) ->
+        {- If there exists a variable, we use the first one -}
+        pure x
 genExp size vs =
   frequency
-    [ (t `div` 20, CstInt <$> arbitrary)
-    , (t `div` 20, CstBool <$> arbitrary)
-    ,
+    [
       ( 1
       , Add
           <$> genExp halfSize vs
-          <*> frequency
-            [ (4, genExp halfSize vs)
-            ,
-              ( 1
-              , CstBool <$> arbitrary
-              )
-            ]
+          <*> genExp halfSize vs
       )
     ,
       ( 1
       , Sub
           <$> genExp halfSize vs
-          <*> frequency
-            [ (4, genExp halfSize vs)
-            ,
-              ( 1
-              , CstBool <$> arbitrary
-              )
-            ]
+          <*> genExp halfSize vs
       )
     ,
       ( 1
       , Mul
           <$> genExp halfSize vs
-          <*> frequency
-            [ (4, genExp halfSize vs)
-            ,
-              ( 1
-              , CstBool <$> arbitrary
-              )
-            ]
-      )
-    , (t `div` 30, Div <$> genExp halfSize vs <*> frequency [(1, genExp halfSize vs), (2, pure $ CstInt 0)])
-    , (t `div` 30, Pow <$> genExp halfSize vs <*> frequency [(1, genExp halfSize vs), (2, pure $ Sub (CstInt 0) (CstInt 1))])
-    , (1, Eql <$> genExp halfSize vs <*> frequency [(4, genExp halfSize vs), (1, CstInt <$> arbitrary)])
-    , (1, If <$> frequency [(3, genExp thirdSize vs), (1, CstInt <$> arbitrary)] <*> genExp thirdSize vs <*> genExp thirdSize vs)
-    ,
-      ( t `div` 25
-      , Var <$> chooseVar
+          <*> genExp halfSize vs
       )
     ,
-      ( t * 4
+      ( t `div` 30
+      , Div
+          <$> genExp halfSize vs
+          <*> genExp
+            halfSize
+            vs
+      )
+    ,
+      ( 1
+      , Eql
+          <$> genExp halfSize vs
+          <*> genExp halfSize vs
+      )
+    ,
+      ( 1
+      , If
+          <$> genExp thirdSize vs
+          <*> genExp thirdSize vs
+          <*> genExp thirdSize vs
+      )
+    ,
+      ( t
       , do
           v <- genVar 3
-          (Let v <$> genExp halfSize (v : vs)) <*> genExp halfSize (v : vs)
+          ( Let v
+              <$> genExp halfSize vs
+            )
+            <*> genExp halfSize (v : vs)
       )
     ,
-      ( t `div` 10
-      , Lambda <$> genVar 3 <*> genExp (size - 1) vs
+      ( t
+      , do
+          v <- genVar 3
+          Lambda v <$> genExp (size - 1) (v : vs)
       )
     , (1, Apply <$> genExp halfSize vs <*> genExp halfSize vs)
     , (1, TryCatch <$> genExp halfSize vs <*> genExp halfSize vs)
@@ -125,15 +142,6 @@ genExp size vs =
   halfSize = size `div` 2
   thirdSize = size `div` 3
   t = 100 :: Int
-  chooseVar :: Gen VName
-  chooseVar =
-    case vs of
-      [] ->
-        {- if no let or lambda has been called, we create one-}
-        pure "No variable"
-      (x : _) ->
-        {- If there exists a variable, we use the first one -}
-        pure x
 
 expCoverage :: Exp -> Property
 expCoverage e =
@@ -150,10 +158,15 @@ expCoverage e =
 parsePrinted :: Exp -> Bool
 parsePrinted e1 =
   case parseAPL "" (printExp e1) of
-    Left _ ->
-      trace "String error returned" False
+    Left err ->
+      trace ("String error returned\n" ++ err) False
     Right e2 ->
-      trace ("Found: " ++ printExp e2) e1 == e2
+      if e1 /= e2
+        then
+          trace ("Found: " ++ printExp e2 ++ "\nExpected: " ++ printExp e1) e1
+            == e2
+        else
+          e1 == e2
 
 onlyCheckedErrors :: Exp -> Bool
 onlyCheckedErrors _ = undefined
