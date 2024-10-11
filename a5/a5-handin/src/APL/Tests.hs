@@ -161,6 +161,16 @@ expCoverage e =
     . cover 50 (or [2 <= n && n <= 4 | Var v <- subExp e, let n = length v]) "non-trivial variable"
     $ ()
 
+{- Errors:
+ - Arbitrary created negative numbers, which parse is not meant to work with.
+ -
+ - sometimes keywords would be created as variables. Added random numbers on the
+ - end
+ -
+ - No parenthesis around try catch and apply.
+ -
+ - -}
+
 parsePrinted :: Exp -> Bool
 parsePrinted e1 =
   case parseAPL "" (printExp e1) of
