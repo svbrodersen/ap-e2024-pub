@@ -4,9 +4,11 @@ module APL.Tests (
 where
 
 import APL.AST (Exp (..), VName, printExp, subExp)
-import APL.Eval (eval, runEval) -- For Task 4
+
+-- For Task 4
 import APL.Check (checkExp)
 import APL.Error (isDomainError, isTypeError, isVariableError)
+import APL.Eval (eval, runEval)
 import APL.Parser (parseAPL)
 import Control.Monad (when)
 import Data.Bool (bool)
@@ -57,8 +59,11 @@ instance Arbitrary Exp where
 
 genVar :: Int -> Gen VName
 genVar size = do
-  alpha <- vectorOf size $ elements ['a' .. 'z']
-  pure alpha
+  alpha <- vectorOf half $ elements ['a' .. 'z']
+  nums <- vectorOf half $ elements ['1' .. '9']
+  pure $ alpha ++ nums
+ where
+  half = size `div` 2
 
 genPos :: Gen Integer
 genPos = (arbitrary :: Gen Integer) `suchThat` (> 0)
@@ -170,12 +175,12 @@ parsePrinted e1 =
           e1 == e2
 
 onlyCheckedErrors :: Exp -> Bool
-onlyCheckedErrors expr = 
-  let 
+onlyCheckedErrors expr =
+  let
     checkedErrors = checkExp expr
     evalResult = runEval (eval expr)
-  in 
-    case evalResult of 
+   in
+    case evalResult of
       Left evalError -> evalError `elem` checkedErrors
       Right _ -> null checkedErrors
 
