@@ -189,6 +189,7 @@ onlyCheckedErrors :: Exp -> Bool
 onlyCheckedErrors expr =
   let
     checkedErrors = checkExp expr
+    {- EvalResult might be an infinite loop. -}
     evalResult = runEval (eval expr)
    in
     case evalResult of
