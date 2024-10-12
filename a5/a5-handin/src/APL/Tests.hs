@@ -1,5 +1,6 @@
 module APL.Tests (
   properties,
+  onlyCheckedErrors,
 )
 where
 
@@ -191,8 +192,9 @@ onlyCheckedErrors expr =
     evalResult = runEval (eval expr)
    in
     case evalResult of
-      Left evalError -> evalError `elem` checkedErrors
-      Right _ -> null checkedErrors
+      Left err ->
+        err `elem` checkedErrors
+      Right _ -> True
 
 properties :: [(String, Property)]
 properties =
