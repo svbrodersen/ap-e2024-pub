@@ -11,4 +11,13 @@ tests =
   localOption (mkTimeout 3000000) $
     testGroup
       "SPC"
-      []
+      [ testCase "Ping Test" $
+          do
+            s <- startSPC
+            x <- pingSPC s
+            x @?= 0
+            y <- pingSPC s
+            y @?= 1
+            v <- pingSPC s
+            v @?= 2
+      ]
