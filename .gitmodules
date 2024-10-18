@@ -1,0 +1,3 @@
+[submodule "a5/latex"]
+	path = a5/latex
+	url = https://github.com/svbrodersen/ap-assignment-5.git

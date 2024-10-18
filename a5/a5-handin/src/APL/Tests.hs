@@ -11,9 +11,6 @@ import APL.Check (checkExp)
 import APL.Error (isDomainError, isTypeError, isVariableError)
 import APL.Eval (eval, runEval)
 import APL.Parser (parseAPL)
-import Control.Monad (when)
-import Data.Bool (bool)
-import Debug.Trace (trace)
 import Test.QuickCheck (
   Arbitrary (arbitrary, shrink),
   Gen,
@@ -22,13 +19,10 @@ import Test.QuickCheck (
   cover,
   elements,
   frequency,
-  oneof,
   property,
-  quickCheck,
   sized,
   suchThat,
   vectorOf,
-  withMaxSuccess,
  )
 
 instance Arbitrary Exp where
@@ -74,7 +68,7 @@ genExp 0 vs =
   frequency
     [ (1, CstInt <$> genPos)
     , (1, CstBool <$> arbitrary)
-    , (1000, Var <$> chooseVar)
+    , (20, Var <$> chooseVar)
     ]
  where
   chooseVar :: Gen VName
@@ -175,15 +169,10 @@ expCoverage e =
 parsePrinted :: Exp -> Bool
 parsePrinted e1 =
   case parseAPL "" (printExp e1) of
-    Left err ->
-      trace ("String error returned\n" ++ err) False
+    Left _ ->
+      False
     Right e2 ->
-      if e1 /= e2
-        then
-          trace ("Found: " ++ printExp e2 ++ "\nExpected: " ++ printExp e1) e1
-            == e2
-        else
-          e1 == e2
+      e1 == e2
 
 onlyCheckedErrors :: Exp -> Bool
 onlyCheckedErrors expr =
