@@ -1,3 +1,6 @@
 [submodule "a4/latex"]
 	path = a4/latex
 	url = https://github.com/svbrodersen/AP-Assignment-4.git
+[submodule "a5/latex"]
+	path = a5/latex
+	url = https://github.com/svbrodersen/ap-assignment-5.git
