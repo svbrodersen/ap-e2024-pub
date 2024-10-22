@@ -21,6 +21,7 @@ module SPC (
 where
 
 import Control.Concurrent (
+  ThreadId,
   forkIO,
   killThread,
   newChan,
@@ -31,6 +32,7 @@ import Control.Monad (ap, forever, liftM, void)
 import Data.Data (Typeable)
 import Data.IORef
 import Data.Maybe (fromMaybe)
+import Data.Type.Equality (inner)
 import Debug.Trace (trace)
 import GenServer
 import System.Clock.Seconds (Clock (Monotonic), Seconds, getTime)
@@ -102,6 +104,8 @@ processes spawned by the workes.
 -}
 data WorkerMsg
   = MsgJob JobId Job
+  | -- A worker can only have a single job, which we cancel
+    WorkerJobCancel JobId
 
 -- Messages sent to SPC.
 data SPCMsg
@@ -268,15 +272,33 @@ workerExists name =
       Just _ -> pure True
 
 workerHandleMsg :: Chan WorkerMsg -> WorkerName -> Server SPCMsg -> IO ()
-workerHandleMsg c n s =
-  do
+workerHandleMsg c' n' s' =
+  innerHandle c' n' s' Nothing
+ where
+  innerHandle c n s t = do
     msg <- receive c
     case msg of
-      MsgJob jobid j ->
+      MsgJob jobid job ->
         do
-          _ <- jobAction j
-          sendTo s $ MsgWorkerDone n jobid Done
-          pure ()
+          tid <- forkIO $ do
+            let doJob = do
+                  jobAction job
+                  sendTo s $ MsgWorkerDone n jobid Done
+            --     onException :: SomeException -> IO ()
+            --     onException _ =
+            --       send (spcChan state) $ MsgJobCrashed jobid
+            -- doJob `catch` onException
+            doJob
+          innerHandle c n s $ Just tid
+      WorkerJobCancel jobid ->
+        case t of
+          Nothing ->
+            error "Told to cancel non-existing job"
+          Just tid ->
+            do
+              killThread tid
+              sendTo s $ MsgWorkerDone n jobid DoneCancelled
+              innerHandle c n s Nothing
 
 handleMsg :: Chan SPCMsg -> SPCM ()
 handleMsg c = do
@@ -315,7 +337,7 @@ handleMsg c = do
           case lookup name $ spcWorkersRunning state of
             Nothing ->
               do
-                s <- io $ spawn $ \c' -> forever $ workerHandleMsg c' name server
+                s <- io $ spawn $ \c' -> workerHandleMsg c' name server
                 let worker = trace "Defined worker" Worker s
                 let counter = spcWorkerCounter state
                 put $
