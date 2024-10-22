@@ -169,8 +169,6 @@ io m = SPCM $ \state -> do
 runSPCM :: SPCState -> SPCM a -> IO a
 runSPCM state (SPCM f) = fst <$> f state
 
--- Scheduler functions
-
 schedule :: SPCM ()
 schedule = do
   state <- get
