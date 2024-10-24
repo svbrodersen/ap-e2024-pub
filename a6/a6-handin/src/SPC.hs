@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+
 module SPC (
   -- * SPC startup
   SPC,
@@ -26,10 +28,9 @@ import Control.Concurrent (
   threadDelay,
  )
 import Control.Exception (SomeException, catch)
-import Control.Monad (ap, forM_, forever, liftM, void, when)
+import Control.Monad (ap, forM_, forever, liftM, void)
 import Data.Foldable (for_)
 import Data.List (partition)
-import Debug.Trace (trace)
 import GenServer
 import System.Clock.Seconds (Clock (Monotonic), Seconds, getTime)
 
@@ -176,11 +177,11 @@ runSPCM state (SPCM f) = fst <$> f state
 
 schedule :: SPCM ()
 schedule = do
-  state <- trace "Schedule get state" get
+  state <- get
   case (spcJobsPending state, spcIdleWorkers state) of
     ((jobId, job) : pendingJobs', (workerName, worker) : idleWorkers') -> do
       now <- io getSeconds
-      let deadline = trace "Calculate deadline" $ now + fromIntegral (jobMaxSeconds job)
+      let deadline = now + fromIntegral (jobMaxSeconds job)
       put $
         state
           { spcJobsPending = pendingJobs'
@@ -330,9 +331,9 @@ handleMsg c = do
             Nothing ->
               pure ()
             Just (Worker workerServer) -> do
-              trace "WorkerCancel" $ workerCancel workerName workerServer state
+              workerCancel workerName workerServer state
         Just (Worker workerServer) ->
-          trace "WorkerCancel" $ workerCancel workerName workerServer state
+          workerCancel workerName workerServer state
 
       {- WorkerCancel might update the state. If worker is running a job. -}
       newState <- get
@@ -355,7 +356,7 @@ handleMsg c = do
             }
         case lookup n' $ spcWorkerJobs state' of
           Nothing -> do
-            trace "Found no worker job ting" $ io $ sendTo s' WorkerMsgShutDown
+            io $ sendTo s' WorkerMsgShutDown
           Just jobId -> do
             jobDone jobId DoneCancelled
             io $ sendTo s' WorkerMsgShutDown
@@ -441,7 +442,7 @@ workerMain c' s' n' =
                 doJob `catch` onException
               innerHandler c spcChan workerName (Just t)
             Just tid ->
-              trace "Worker already working" $ innerHandler c spcChan workerName (Just tid)
+              innerHandler c spcChan workerName (Just tid)
         WorkerMsgJobDone jobId reason -> do
           send spcChan $ MsgWorkerJobDone jobId reason
           innerHandler c spcChan workerName Nothing

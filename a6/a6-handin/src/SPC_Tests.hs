@@ -112,6 +112,24 @@ tests =
           r2 @?= JobDone DoneCancelled
           v <- readIORef ref
           v @?= False
+          j2 <- jobAdd spc $ Job (writeIORef ref True) longTimeout
+          threadDelay 10000
+          r3 <- jobStatus spc j2
+          r3 @?= JobPending
+      , testCase "Job crash worker work" $ do
+          spc <- startSPC
+          ref <- newIORef False
+          let workerName = "worker1"
+          worker <- workerAdd spc workerName
+          worker @?= Right ("Successfully added worker '" ++ workerName ++ "'.")
+          j1 <- jobAdd spc $ Job (error "Exception") longTimeout
+          r1 <- jobWait spc j1
+          r1 @?= Just DoneCrashed
+          j2 <- jobAdd spc $ Job (writeIORef ref True) longTimeout
+          r2 <- jobWait spc j2
+          r2 @?= Just Done
+          v <- readIORef ref
+          v @?= True
       ]
  where
   smallTimeout = 1
